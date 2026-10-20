@@ -13,7 +13,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.autoai.media.qqmusic.service.MusicBrowserService
-import com.autoai.media.qqmusic.dialog.MusicCatalog
 import com.autoai.media.qqmusic.databinding.ActivityMediaBinding
 
 class MediaActivity : AppCompatActivity() {
@@ -30,20 +29,29 @@ class MediaActivity : AppCompatActivity() {
     }
 
     private val subscriptionCallback = object : MediaBrowserCompat.SubscriptionCallback() {
+        override fun onError(parentId: String) {
+            binding.songList.removeAllViews()
+            binding.songList.addView(TextView(this@MediaActivity).apply {
+                text = "歌曲列表加载失败，点击重试"
+                setOnClickListener { retrySubscription(parentId) }
+            })
+        }
+
         override fun onChildrenLoaded(
             parentId: String,
             children: MutableList<MediaBrowserCompat.MediaItem>
         ) {
             binding.songList.removeAllViews()
             children.forEach { item ->
-                val song = MusicCatalog.find(item.mediaId ?: return@forEach) ?: return@forEach
+                val mediaId = item.mediaId ?: return@forEach
+                val description = item.description
                 val row = TextView(this@MediaActivity).apply {
-                    text = "${song.title}\n${song.artist} · ${song.album}"
+                    text = "${description.title}\n${description.subtitle} · ${description.description}"
                     textSize = 17f
                     setTextColor(ContextCompat.getColor(context, R.color.black))
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(16, 18, 16, 18)
-                    setOnClickListener { controls()?.playFromMediaId(song.id, null) }
+                    setOnClickListener { controls()?.playFromMediaId(mediaId, null) }
                 }
                 binding.songList.addView(row, ViewGroup.LayoutParams.MATCH_PARENT, 88)
             }
@@ -86,6 +94,12 @@ class MediaActivity : AppCompatActivity() {
 
     private fun controls(): MediaControllerCompat.TransportControls? =
         MediaControllerCompat.getMediaController(this)?.transportControls
+
+    private fun retrySubscription(parentId: String) {
+        if (!browser.isConnected) return
+        browser.unsubscribe(parentId)
+        browser.subscribe(parentId, subscriptionCallback)
+    }
 
     private fun componentName() = ComponentName(this, MusicBrowserService::class.java)
 
