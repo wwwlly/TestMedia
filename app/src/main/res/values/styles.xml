@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TestMedia" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#3F51B5</item>
+    </style>
+
+    <style name="Theme.TestMedia.Dialog.Base" parent="Theme.AppCompat.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.TestMedia.Dialog.Custom" parent="Theme.TestMedia.Dialog.Base">
+        <item name="android:windowAnimationStyle">@style/Animation.TestMedia.Dialog.Custom</item>
+    </style>
+
+    <style name="Theme.TestMedia.Dialog.SystemDefault" parent="Theme.TestMedia.Dialog.Base" />
+
+    <style name="Theme.TestMedia.Dialog.None" parent="Theme.TestMedia.Dialog.Base">
+        <item name="android:windowAnimationStyle">@style/Animation.TestMedia.Dialog.None</item>
+    </style>
+
+    <style name="Animation.TestMedia.Dialog.Custom" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/dialog_window_enter</item>
+        <item name="android:windowExitAnimation">@anim/dialog_window_exit</item>
+    </style>
+
+    <style name="Animation.TestMedia.Dialog.None" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@null</item>
+        <item name="android:windowExitAnimation">@null</item>
+    </style>
+
+    <style name="lexus_theme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:textDirection">ltr</item>
+        <!-- 添加Activity进入退出动画，仅在这里配置，模拟器ok，车机无效，暂先保留此配置 -->
+        <item name="android:windowActivityTransitions">true</item>
+        <item name="android:windowAnimationStyle">@style/AnimActivityTheme</item>
+        <item name="android:windowEnableSplitTouch">false</item>
+        <item name="android:splitMotionEvents">false</item>
+    </style>
+
+    <style name="AnimActivityTheme" parent="@android:style/Animation.Activity">
+        <!-- A启动B,B执行自己的进入动画 -->
+        <item name="android:activityOpenEnterAnimation">@anim/common_activity_in</item>
+        <!-- A启动B,A执行B的退出动画 -->
+        <item name="android:activityOpenExitAnimation">@anim/common_activity_out</item>
+        <!-- B返回A,B执行A的进入的动画 -->
+        <item name="android:activityCloseEnterAnimation">@anim/common_activity_in</item>
+        <!-- B返回A,A执行自己的退出动画 -->
+        <item name="android:activityCloseExitAnimation">@anim/common_activity_out</item>
+        <item name="android:taskCloseEnterAnimation">@anim/common_activity_in</item>
+        <item name="android:taskCloseExitAnimation">@anim/common_activity_out</item>
+    </style>
+
+    <!--自定义dialog背景全透明无边框theme -->
+    <style name="common_dialog" parent="android:style/Theme.Dialog">
+        <!--背景颜色及和透明程度-->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!--是否去除标题 -->
+        <item name="android:windowNoTitle">true</item>
+        <!--是否去除边框-->
+        <item name="android:windowFrame">@null</item>
+        <!--是否浮现在activity之上-->
+        <item name="android:windowIsFloating">true</item>
+<!--        <item name="android:backgroundDimAmount">@dimen/common_background_dim_amount</item>-->
+        <!--是否暗化背景-->
+        <item name="android:backgroundDimEnabled">true</item>
+        <!-- 是否半透明 -->
+        <item name="android:windowIsTranslucent">true</item>
+        <!-- 打开模糊效果 -->
+        <!--        <item name="android:windowBlurBehindEnabled" tools:ignore="NewApi">true</item>-->
+        <!-- 设置模糊半径 -->
+        <!--        <item name="android:windowBlurBehindRadius" tools:ignore="NewApi">@dimen/common_blur_radius</item>-->
+        <item name="android:windowAnimationStyle">@style/common_dialog_no_window_anim</item>
+    </style>
+
+    <style name="common_dialog_anim">
+        <!--进入动画-->
+        <item name="android:windowEnterAnimation">@anim/dialog_enter</item>
+        <!--退出动画-->
+        <item name="android:windowExitAnimation">@anim/dialog_dismiss</item>
+    </style>
+
+    <style name="common_dialog_no_window_anim">
+        <item name="android:windowEnterAnimation">@null</item>
+        <item name="android:windowExitAnimation">@null</item>
+    </style>
+</resources>

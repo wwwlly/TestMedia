@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">TestMedia</string>
+    <string name="show_dialog">显示 Dialog（非 DialogFragment）</string>
+    <string name="test_description">Dialog Window 动画对照测试</string>
+    <string name="show_custom_animation">显示自定义 Window 动画</string>
+    <string name="show_system_animation">显示系统默认 Dialog 动画</string>
+    <string name="show_no_animation">显示无 Window 动画</string>
+    <string name="open_media">打开多媒体测试</string>
+    <string name="dialog_title">Dialog Window 动画测试</string>
+    <string name="dialog_message">三个 Dialog 的布局、大小和逻辑完全相同。</string>
+    <string name="confirm">确认</string>
+    <string name="cancel">取消</string>
+</resources>

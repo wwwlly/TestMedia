@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="功能入口"
+        android:textColor="#222222"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+    <Button
+        android:id="@+id/show_custom_animation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="@string/show_custom_animation" />
+    <Button
+        android:id="@+id/show_system_animation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_system_animation" />
+    <Button
+        android:id="@+id/show_no_animation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_no_animation" />
+    <Button
+        android:id="@+id/open_media"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="@string/open_media" />
+</LinearLayout>
