@@ -1,5 +1,6 @@
 package com.autoai.media.qqmusic.player
 
+import com.autoai.media.qqmusic.R
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -55,7 +56,7 @@ class AndroidAudioPlayer(context: Context) : AudioPlayer {
         }
         player.setOnErrorListener { current, what, extra ->
             if (engine === current) fail(PlayerError(PlayerError.Code.PLAYBACK,
-                "MediaPlayer error: what=$what, extra=$extra", nativeCode = what, nativeExtra = extra))
+                appContext.getString(R.string.error_player_native, what, extra), nativeCode = what, nativeExtra = extra))
             true // Consume the error to avoid MediaPlayer also reporting completion.
         }
         changeState(PlaybackState.PREPARING)
@@ -131,7 +132,7 @@ class AndroidAudioPlayer(context: Context) : AudioPlayer {
 
     private fun execute(code: PlayerError.Code = PlayerError.Code.PLAYBACK, block: () -> Unit): Boolean {
         return try { block(); true } catch (error: Exception) {
-            fail(PlayerError(code, error.message ?: "MediaPlayer operation failed", error))
+            fail(PlayerError(code, error.message ?: appContext.getString(R.string.error_player_operation), error))
             false
         }
     }

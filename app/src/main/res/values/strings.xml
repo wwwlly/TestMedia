@@ -10,4 +10,45 @@
     <string name="dialog_message">三个 Dialog 的布局、大小和逻辑完全相同。</string>
     <string name="confirm">确认</string>
     <string name="cancel">取消</string>
+    <string name="feature_entry_title">功能入口</string>
+    <string name="song_list_title">歌曲列表</string>
+    <string name="playback_detail_title">播放详情</string>
+    <string name="action_back">返回</string>
+    <string name="action_retry">重试</string>
+    <string name="action_play">播放</string>
+    <string name="action_pause">暂停</string>
+    <string name="action_stop">停止</string>
+    <string name="action_previous">上一曲</string>
+    <string name="action_next">下一曲</string>
+    <string name="album_art_description">专辑封面</string>
+    <string name="playback_progress_description">播放进度</string>
+    <string name="playback_time_zero" translatable="false">0:00</string>
+    <string name="songs_loading">正在加载歌曲…</string>
+    <string name="songs_empty">暂无歌曲</string>
+    <string name="songs_load_failed">歌曲列表加载失败</string>
+    <string name="media_connection_retry">媒体服务未连接，请重试</string>
+    <string name="song_info_waiting">等待歌曲信息</string>
+    <string name="media_connection_return_retry">媒体服务未连接，返回页面可重新连接</string>
+    <string name="playback_failed_retry">播放失败，请重试</string>
+    <string name="playback_loading">正在加载…</string>
+    <string name="playback_playing">正在播放</string>
+    <string name="playback_paused">已暂停</string>
+    <string name="playback_stopped">已停止</string>
+    <string name="playback_tap_to_play">点击播放</string>
+    <string name="song_status_playing">播放中</string>
+    <string name="song_status_loading">加载中</string>
+    <string name="song_status_failed">播放失败</string>
+    <string name="playback_channel_name">音乐播放</string>
+    <string name="error_invalid_song_ids">歌曲列表包含空 ID 或重复 ID</string>
+    <string name="error_no_playable_songs">暂无可播放歌曲</string>
+    <string name="error_song_not_found">找不到可播放歌曲</string>
+    <string name="error_audio_focus_denied">未获得音频焦点，请稍后重试</string>
+    <string name="error_source_unavailable">无法获取播放地址</string>
+    <string name="error_background_playback_start">无法启动后台播放，请在应用内重试</string>
+    <string name="notification_songs_loading">正在加载歌曲</string>
+    <string name="metadata_separator" translatable="false">" · "</string>
+    <string name="playback_time_format" translatable="false">%1$d:%2$02d</string>
+    <string name="error_unknown_media_id">找不到歌曲：%1$s</string>
+    <string name="error_player_native">播放器错误：%1$d（%2$d）</string>
+    <string name="error_player_operation">播放器操作失败</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.autoai.media.qqmusic.service
 
+import com.autoai.media.qqmusic.R
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -20,7 +21,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
-import com.autoai.media.qqmusic.activity.MediaActivity
+import com.autoai.media.qqmusic.activity.PlaybackActivity
 import com.autoai.media.qqmusic.catalog.MediaCatalogMapper
 import com.autoai.media.qqmusic.catalog.MediaDataSource
 import com.autoai.media.qqmusic.catalog.MediaDataSourceFactory
@@ -66,7 +67,7 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
         }
         sessionToken = mediaSession.sessionToken
         getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "音乐播放", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, getString(R.string.playback_channel_name), NotificationManager.IMPORTANCE_LOW)
         )
         player = AudioPlayerFactory.create(this)
         dataSource = MediaDataSourceFactory.create(this)
@@ -181,7 +182,7 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
             waiting.forEach { it.sendResult(if (valid)
                 songs.mapTo(mutableListOf(), MediaCatalogMapper::mediaItem) else null) }
             if (!valid) {
-                reportDataError(outcome.exceptionOrNull()?.message ?: "歌曲列表包含空 ID 或重复 ID")
+                reportDataError(outcome.exceptionOrNull()?.message ?: getString(R.string.error_invalid_song_ids))
             } else if (playAfterLoad) {
                 playAfterLoad = false
                 val id = requestedMediaId
@@ -214,7 +215,7 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
                 loadCatalog()
                 return
             }
-            if (songs.isEmpty()) { reportDataError("暂无可播放歌曲"); return }
+            if (songs.isEmpty()) { reportDataError(getString(R.string.error_no_playable_songs)); return }
             if (!requestFocus()) return
             wantsPlayback = true
             errorMessage = null
@@ -255,7 +256,7 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
     }
 
     private fun selectSong(index: Int) {
-        if (index !in songs.indices) { reportDataError("找不到可播放歌曲"); return }
+        if (index !in songs.indices) { reportDataError(getString(R.string.error_song_not_found)); return }
         cancelSourceRequest()
         changingSong = true
         try { player.stop() } finally { changingSong = false }
@@ -279,7 +280,7 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder()
                 .setState(PlaybackStateCompat.STATE_ERROR, player.positionMs, 0f)
                 .setActions(PlaybackStateCompat.ACTION_PLAY)
-                .setErrorMessage(PlaybackStateCompat.ERROR_CODE_APP_ERROR, "未获得音频焦点，请稍后重试").build())
+                .setErrorMessage(PlaybackStateCompat.ERROR_CODE_APP_ERROR, getString(R.string.error_audio_focus_denied)).build())
             endForeground()
         }
         return hasAudioFocus
@@ -305,7 +306,7 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
             resolvingSource = false
             outcome.fold(
                 onSuccess = { player.prepare(it, autoPlay = wantsPlayback && hasAudioFocus) },
-                onFailure = { reportDataError(it.message ?: "无法获取播放地址") }
+                onFailure = { reportDataError(it.message ?: getString(R.string.error_source_unavailable)) }
             )
         }
     }
@@ -357,7 +358,7 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
         ).setState(state, player.positionMs, if (state == PlaybackStateCompat.STATE_PLAYING) 1f else 0f)
         if (state == PlaybackStateCompat.STATE_ERROR) builder.setErrorMessage(
-            PlaybackStateCompat.ERROR_CODE_APP_ERROR, errorMessage ?: "播放失败，请重试")
+            PlaybackStateCompat.ERROR_CODE_APP_ERROR, errorMessage ?: getString(R.string.playback_failed_retry))
         mediaSession.setPlaybackState(builder.build())
     }
 
@@ -374,28 +375,28 @@ class MusicBrowserService : MediaBrowserServiceCompat() {
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder()
                 .setState(PlaybackStateCompat.STATE_ERROR, player.positionMs, 0f)
                 .setActions(PlaybackStateCompat.ACTION_PLAY)
-                .setErrorMessage(PlaybackStateCompat.ERROR_CODE_APP_ERROR, "无法启动后台播放，请在应用内重试").build())
+                .setErrorMessage(PlaybackStateCompat.ERROR_CODE_APP_ERROR, getString(R.string.error_background_playback_start)).build())
             false
         }
     }
 
     private fun notification(): Notification {
-        val contentIntent = PendingIntent.getActivity(this, 0, Intent(this, MediaActivity::class.java),
+        val contentIntent = PendingIntent.getActivity(this, 0, PlaybackActivity.intent(this),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val song = songs.getOrNull(currentIndex)
         val playing = wantsPlayback || player.state == PlaybackState.PLAYING || player.state == PlaybackState.PREPARING
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle(song?.title ?: "正在加载歌曲").setContentText(song?.artist)
+            .setContentTitle(song?.title ?: getString(R.string.notification_songs_loading)).setContentText(song?.artist)
             .setContentIntent(contentIntent).setOnlyAlertOnce(true)
             .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setMediaSession(mediaSession.sessionToken)
                 .setShowActionsInCompactView(0, 1, 2))
-            .addAction(android.R.drawable.ic_media_previous, "上一曲", mediaAction(PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS))
+            .addAction(android.R.drawable.ic_media_previous, getString(R.string.action_previous), mediaAction(PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS))
             .addAction(if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-                if (playing) "暂停" else "播放",
+                if (playing) getString(R.string.action_pause) else getString(R.string.action_play),
                 mediaAction(if (playing) PlaybackStateCompat.ACTION_PAUSE else PlaybackStateCompat.ACTION_PLAY))
-            .addAction(android.R.drawable.ic_media_next, "下一曲", mediaAction(PlaybackStateCompat.ACTION_SKIP_TO_NEXT))
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "停止", mediaAction(PlaybackStateCompat.ACTION_STOP))
+            .addAction(android.R.drawable.ic_media_next, getString(R.string.action_next), mediaAction(PlaybackStateCompat.ACTION_SKIP_TO_NEXT))
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.action_stop), mediaAction(PlaybackStateCompat.ACTION_STOP))
             .build()
     }
 

@@ -1,129 +1,102 @@
 package com.autoai.media.qqmusic.activity
 
-import android.R
-import android.content.ComponentName
+import com.autoai.media.qqmusic.R
+import com.autoai.media.qqmusic.adapter.SongAdapter
+
+import com.autoai.media.qqmusic.media.session.MediaSessionConnection
+
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
-import android.util.Log
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.TextView
+import android.support.v4.media.session.PlaybackStateCompat
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import com.autoai.media.qqmusic.service.MusicBrowserService
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.autoai.media.qqmusic.databinding.ActivityMediaBinding
+import com.autoai.media.qqmusic.service.MusicBrowserService
 
+/** 歌曲列表页，数据只来自 MediaBrowser，不依赖具体数据源。 */
 class MediaActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMediaBinding
-    private lateinit var browser: MediaBrowserCompat
-
-    private val connectionCallback = object : MediaBrowserCompat.ConnectionCallback() {
-        override fun onConnected() {
-            val controller = MediaControllerCompat(this@MediaActivity, browser.sessionToken)
-            controller.registerCallback(controllerCallback)
-            MediaControllerCompat.setMediaController(this@MediaActivity, controller)
-            browser.subscribe(MusicBrowserService.Companion.MEDIA_ROOT, subscriptionCallback)
-        }
+    private lateinit var connection: MediaSessionConnection
+    private val songs = SongAdapter { id ->
+        val controller = connection.controller
+        val currentId = controller?.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+        val canReturnToPlayback = id == currentId && controller?.playbackState?.state in listOf(
+            PlaybackStateCompat.STATE_PLAYING, PlaybackStateCompat.STATE_PAUSED,
+            PlaybackStateCompat.STATE_BUFFERING, PlaybackStateCompat.STATE_CONNECTING
+        )
+        startActivity(PlaybackActivity.intent(this, if (canReturnToPlayback) null else id))
     }
-
-    private val subscriptionCallback = object : MediaBrowserCompat.SubscriptionCallback() {
-        override fun onError(parentId: String) {
-            binding.songList.removeAllViews()
-            binding.songList.addView(TextView(this@MediaActivity).apply {
-                text = "歌曲列表加载失败，点击重试"
-                setOnClickListener { retrySubscription(parentId) }
-            })
-        }
-
+    private val subscription = object : MediaBrowserCompat.SubscriptionCallback() {
         override fun onChildrenLoaded(
             parentId: String,
             children: MutableList<MediaBrowserCompat.MediaItem>
         ) {
-            binding.songList.removeAllViews()
-            children.forEach { item ->
-                val mediaId = item.mediaId ?: return@forEach
-                val description = item.description
-                val row = TextView(this@MediaActivity).apply {
-                    text = "${description.title}\n${description.subtitle} · ${description.description}"
-                    textSize = 17f
-                    setTextColor(ContextCompat.getColor(context, R.color.black))
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(16, 18, 16, 18)
-                    setOnClickListener { controls()?.playFromMediaId(mediaId, null) }
-                }
-                binding.songList.addView(row, ViewGroup.LayoutParams.MATCH_PARENT, 88)
-            }
+            songs.submitList(children.filter { it.isPlayable && it.mediaId != null })
+            binding.listStatus.text = if (children.isEmpty()) getString(R.string.songs_empty) else ""
+            binding.listStatus.visibility = if (children.isEmpty()) View.VISIBLE else View.GONE
+            binding.retryButton.visibility = View.GONE
         }
-    }
 
-    private val controllerCallback = object : MediaControllerCompat.Callback() {
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            metadata ?: return
-            binding.currentTitle.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
-            binding.currentArtist.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
-            metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART)?.let {
-                binding.currentAlbumArt.setImageBitmap(it)
-            }
+        override fun onError(parentId: String) {
+            showError(getString(R.string.songs_load_failed))
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.i(TAG, "onCreate")
         binding = ActivityMediaBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        binding.previousButton.setOnClickListener { controls()?.skipToPrevious() }
-        binding.nextButton.setOnClickListener { controls()?.skipToNext() }
-        browser = MediaBrowserCompat(this, componentName(), connectionCallback, null)
+        binding.songList.layoutManager = LinearLayoutManager(this)
+        binding.songList.adapter = songs
+        connection = MediaSessionConnection(this, { subscribe() }, ::updateCurrentSong)
+        binding.retryButton.setOnClickListener {
+            if (connection.browser.isConnected) subscribe() else {
+                connection.stop()
+                connection.start()
+            }
+        }
     }
 
     override fun onStart() {
         super.onStart()
-        Log.i(TAG, "onStart")
-        browser.connect()
+        binding.listStatus.text = getString(R.string.songs_loading)
+        binding.listStatus.visibility = View.VISIBLE
+        binding.retryButton.visibility = View.GONE
+        connection.start()
     }
 
     override fun onStop() {
-        MediaControllerCompat.getMediaController(this)?.unregisterCallback(controllerCallback)
-        browser.disconnect()
+        connection.stop()
         super.onStop()
-        Log.i(TAG, "onStop")
     }
 
-    private fun controls(): MediaControllerCompat.TransportControls? =
-        MediaControllerCompat.getMediaController(this)?.transportControls
-
-    private fun retrySubscription(parentId: String) {
-        if (!browser.isConnected) return
-        browser.unsubscribe(parentId)
-        browser.subscribe(parentId, subscriptionCallback)
+    private fun subscribe() {
+        binding.listStatus.text = getString(R.string.songs_loading)
+        binding.retryButton.visibility = View.GONE
+        connection.browser.unsubscribe(MusicBrowserService.MEDIA_ROOT)
+        connection.browser.subscribe(MusicBrowserService.MEDIA_ROOT, subscription)
     }
 
-    private fun componentName() = ComponentName(this, MusicBrowserService::class.java)
-
-    override fun onRestart() {
-        super.onRestart()
-        Log.i(TAG, "onRestart")
+    private fun updateCurrentSong(controller: MediaControllerCompat?) {
+        val mediaId = controller?.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+        val status = when (controller?.playbackState?.state) {
+            PlaybackStateCompat.STATE_PLAYING -> getString(R.string.song_status_playing)
+            PlaybackStateCompat.STATE_PAUSED -> getString(R.string.playback_paused)
+            PlaybackStateCompat.STATE_BUFFERING, PlaybackStateCompat.STATE_CONNECTING -> getString(R.string.song_status_loading)
+            PlaybackStateCompat.STATE_STOPPED -> getString(R.string.playback_stopped)
+            PlaybackStateCompat.STATE_ERROR -> getString(R.string.song_status_failed)
+            else -> null
+        }
+        songs.updatePlayback(mediaId, status)
+        if (controller == null) showError(getString(R.string.media_connection_retry))
     }
 
-    override fun onResume() {
-        super.onResume()
-        Log.i(TAG, "onResume")
-    }
-
-    override fun onPause() {
-        super.onPause()
-        Log.i(TAG, "onPause")
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.i(TAG, "onDestroy")
-    }
-
-    companion object {
-        private const val TAG = "MediaActivity"
+    private fun showError(message: String) {
+        binding.listStatus.text = message
+        binding.listStatus.visibility = View.VISIBLE
+        binding.retryButton.visibility = View.VISIBLE
     }
 }

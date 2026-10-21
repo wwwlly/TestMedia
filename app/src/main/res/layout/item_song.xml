@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="88dp"
+    android:orientation="horizontal" android:gravity="center_vertical" android:padding="12dp"
+    android:background="?android:attr/selectableItemBackground" android:clickable="true" android:focusable="true">
+    <ImageView android:id="@+id/song_artwork" android:layout_width="56dp" android:layout_height="56dp"
+        android:importantForAccessibility="no" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        android:orientation="vertical" android:layout_marginStart="16dp">
+        <TextView android:id="@+id/song_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="18sp" android:textStyle="bold" />
+        <TextView android:id="@+id/song_subtitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" android:textSize="14sp" android:textColor="#667085" />
+    </LinearLayout>
+    <TextView android:id="@+id/song_playback_status" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_marginStart="12dp"
+        android:textSize="14sp" android:textColor="#087F5B" android:textStyle="bold"
+        android:visibility="gone" />
+</LinearLayout>
