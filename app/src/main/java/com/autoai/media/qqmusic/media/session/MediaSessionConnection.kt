@@ -11,14 +11,17 @@ import com.autoai.media.qqmusic.service.MusicBrowserService
 /** 页面只连接媒体会话；停止页面连接不会停止服务中的播放器。 */
 internal class MediaSessionConnection(
     context: Context,
-    private val onReady: (MediaControllerCompat) -> Unit,
-    private val onChanged: (MediaControllerCompat?) -> Unit
+    private val onReady: () -> Unit,
+    private val onChanged: () -> Unit
 ) {
-    var controller: MediaControllerCompat? = null
-        private set
+    private var controller: MediaControllerCompat? = null
+
+    val isConnected: Boolean get() = controller != null
+    val metadata: MediaMetadataCompat? get() = controller?.metadata
+    val playbackState: PlaybackStateCompat? get() = controller?.playbackState
     private val callback = object : MediaControllerCompat.Callback() {
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) = onChanged(controller)
-        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) = onChanged(controller)
+        override fun onMetadataChanged(metadata: MediaMetadataCompat?) = onChanged()
+        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) = onChanged()
         override fun onSessionDestroyed() { stop() }
     }
     val browser: MediaBrowserCompat = MediaBrowserCompat(context.applicationContext,
@@ -27,11 +30,11 @@ internal class MediaSessionConnection(
             override fun onConnected() {
                 handleConnected(context)
             }
-            override fun onConnectionFailed() = onChanged(null)
+            override fun onConnectionFailed() = onChanged()
             override fun onConnectionSuspended() {
                 controller?.unregisterCallback(callback)
                 controller = null
-                onChanged(null)
+                onChanged()
             }
         }, null)
 
@@ -39,8 +42,18 @@ internal class MediaSessionConnection(
         val connected = MediaControllerCompat(context, browser.sessionToken)
         controller = connected
         connected.registerCallback(callback)
-        onReady(connected)
-        onChanged(connected)
+        onReady()
+        onChanged()
+    }
+
+    fun play() { controller?.transportControls?.play() }
+    fun pause() { controller?.transportControls?.pause() }
+    fun stopPlayback() { controller?.transportControls?.stop() }
+    fun skipToPrevious() { controller?.transportControls?.skipToPrevious() }
+    fun skipToNext() { controller?.transportControls?.skipToNext() }
+    fun seekTo(position: Long) { controller?.transportControls?.seekTo(position) }
+    fun playFromMediaId(mediaId: String) {
+        controller?.transportControls?.playFromMediaId(mediaId, null)
     }
 
     fun start() { browser.connect() }
@@ -48,6 +61,6 @@ internal class MediaSessionConnection(
         controller?.unregisterCallback(callback)
         controller = null
         browser.disconnect()
-        onChanged(null)
+        onChanged()
     }
 }

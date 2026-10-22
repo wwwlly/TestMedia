@@ -8,7 +8,6 @@ import com.autoai.media.qqmusic.media.session.MediaSessionConnection
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -21,9 +20,8 @@ class MediaActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMediaBinding
     private lateinit var connection: MediaSessionConnection
     private val songs = SongAdapter { id ->
-        val controller = connection.controller
-        val currentId = controller?.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
-        val canReturnToPlayback = id == currentId && controller?.playbackState?.state in listOf(
+        val currentId = connection.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+        val canReturnToPlayback = id == currentId && connection.playbackState?.state in listOf(
             PlaybackStateCompat.STATE_PLAYING, PlaybackStateCompat.STATE_PAUSED,
             PlaybackStateCompat.STATE_BUFFERING, PlaybackStateCompat.STATE_CONNECTING
         )
@@ -80,9 +78,9 @@ class MediaActivity : AppCompatActivity() {
         connection.browser.subscribe(MusicBrowserService.MEDIA_ROOT, subscription)
     }
 
-    private fun updateCurrentSong(controller: MediaControllerCompat?) {
-        val mediaId = controller?.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
-        val status = when (controller?.playbackState?.state) {
+    private fun updateCurrentSong() {
+        val mediaId = connection.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+        val status = when (connection.playbackState?.state) {
             PlaybackStateCompat.STATE_PLAYING -> getString(R.string.song_status_playing)
             PlaybackStateCompat.STATE_PAUSED -> getString(R.string.playback_paused)
             PlaybackStateCompat.STATE_BUFFERING, PlaybackStateCompat.STATE_CONNECTING -> getString(R.string.song_status_loading)
@@ -91,7 +89,7 @@ class MediaActivity : AppCompatActivity() {
             else -> null
         }
         songs.updatePlayback(mediaId, status)
-        if (controller == null) showError(getString(R.string.media_connection_retry))
+        if (!connection.isConnected) showError(getString(R.string.media_connection_retry))
     }
 
     private fun showError(message: String) {

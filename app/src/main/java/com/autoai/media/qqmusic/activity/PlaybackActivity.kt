@@ -10,7 +10,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
@@ -36,22 +35,22 @@ class PlaybackActivity : AppCompatActivity() {
         setContentView(binding.root)
         pendingMediaId = if (savedInstanceState == null) intent.getStringExtra(EXTRA_MEDIA_ID)
             else savedInstanceState.getString(STATE_PENDING_ID)
-        connection = MediaSessionConnection(this, { controller ->
+        connection = MediaSessionConnection(this, {
             // Consume once: reconnection or rotation must not restart the selected song.
             pendingMediaId?.let { id ->
                 pendingMediaId = null
-                controller.transportControls.playFromMediaId(id, null)
+                connection.playFromMediaId(id)
             }
         }, ::render)
         binding.backButton.setOnClickListener { returnToList() }
-        binding.previousButton.setOnClickListener { connection.controller?.transportControls?.skipToPrevious() }
-        binding.nextButton.setOnClickListener { connection.controller?.transportControls?.skipToNext() }
-        binding.stopButton.setOnClickListener { connection.controller?.transportControls?.stop() }
+        binding.previousButton.setOnClickListener { connection.skipToPrevious() }
+        binding.nextButton.setOnClickListener { connection.skipToNext() }
+        binding.stopButton.setOnClickListener { connection.stopPlayback() }
         binding.playPauseButton.setOnClickListener {
-            connection.controller?.let { controller ->
-                val state = controller.playbackState?.state
+            if (connection.isConnected) {
+                val state = connection.playbackState?.state
                 if (state == PlaybackStateCompat.STATE_PLAYING || state == PlaybackStateCompat.STATE_BUFFERING)
-                    controller.transportControls.pause() else controller.transportControls.play()
+                    connection.pause() else connection.play()
             }
         }
         binding.progress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -60,21 +59,21 @@ class PlaybackActivity : AppCompatActivity() {
                 if (fromUser) binding.elapsedTime.text = formatTime(duration() * progress / 1000)
             }
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                connection.controller?.transportControls?.seekTo(duration() * seekBar.progress / 1000)
+                connection.seekTo(duration() * seekBar.progress / 1000)
                 dragging = false
             }
         })
-        render(null)
+        render()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingMediaId = intent.getStringExtra(EXTRA_MEDIA_ID)
-        connection.controller?.let { controller ->
+        if (connection.isConnected) {
             pendingMediaId?.let { id ->
                 pendingMediaId = null
-                controller.transportControls.playFromMediaId(id, null)
+                connection.playFromMediaId(id)
             }
         }
     }
@@ -101,13 +100,13 @@ class PlaybackActivity : AppCompatActivity() {
         super.onStop()
     }
 
-    private fun render(controller: MediaControllerCompat?) {
-        val metadata = controller?.metadata
+    private fun render() {
+        val metadata = connection.metadata
         binding.currentTitle.text = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: getString(R.string.song_info_waiting)
         binding.currentArtist.text = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ARTIST).orEmpty()
         binding.currentAlbum.text = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ALBUM).orEmpty()
         binding.currentAlbumArt.setImageBitmap(metadata?.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART))
-        val state = controller?.playbackState
+        val state = connection.playbackState
         val active = state?.state == PlaybackStateCompat.STATE_PLAYING || state?.state == PlaybackStateCompat.STATE_BUFFERING
         binding.playPauseButton.text = when {
             state?.state == PlaybackStateCompat.STATE_ERROR -> getString(R.string.action_retry)
@@ -115,7 +114,7 @@ class PlaybackActivity : AppCompatActivity() {
             else -> getString(R.string.action_play)
         }
         binding.playbackStatus.text = when {
-            controller == null -> getString(R.string.media_connection_return_retry)
+            !connection.isConnected -> getString(R.string.media_connection_return_retry)
             state?.state == PlaybackStateCompat.STATE_ERROR -> state.errorMessage ?: getString(R.string.playback_failed_retry)
             state?.state == PlaybackStateCompat.STATE_BUFFERING -> getString(R.string.playback_loading)
             state?.state == PlaybackStateCompat.STATE_PLAYING -> getString(R.string.playback_playing)
@@ -123,7 +122,7 @@ class PlaybackActivity : AppCompatActivity() {
             state?.state == PlaybackStateCompat.STATE_STOPPED -> getString(R.string.playback_stopped)
             else -> getString(R.string.playback_tap_to_play)
         }
-        fun supports(action: Long) = controller != null && ((state?.actions ?: 0L) and action) != 0L
+        fun supports(action: Long) = connection.isConnected && ((state?.actions ?: 0L) and action) != 0L
         binding.previousButton.isEnabled = supports(PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
         binding.nextButton.isEnabled = supports(PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
         binding.stopButton.isEnabled = supports(PlaybackStateCompat.ACTION_STOP)
@@ -133,13 +132,13 @@ class PlaybackActivity : AppCompatActivity() {
         updateProgress()
     }
 
-    private fun duration() = (connection.controller?.metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L).coerceAtLeast(0L)
+    private fun duration() = (connection.metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L).coerceAtLeast(0L)
 
     private fun updateProgress() {
         val total = duration()
         binding.totalTime.text = formatTime(total)
         if (dragging) return
-        val state = connection.controller?.playbackState
+        val state = connection.playbackState
         var position = (state?.position ?: 0L).coerceAtLeast(0L)
         // PlaybackState positions are snapshots; extrapolate only during actual playback.
         if (state?.state == PlaybackStateCompat.STATE_PLAYING && state.lastPositionUpdateTime > 0) {
