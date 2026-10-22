@@ -7,6 +7,7 @@ import android.net.Uri
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
+import com.autoai.media.qqmusic.ktx.toMediaMetadataCompat
 
 /** 统一模型到系统媒体协议的转换，与数据来源无关。 */
 object MediaCatalogMapper {
@@ -23,12 +24,7 @@ object MediaCatalogMapper {
         return bitmap
     }
 
-    fun metadata(song: Song): MediaMetadataCompat = MediaMetadataCompat.Builder()
-        .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
-        .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
-        .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
-        .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.album)
-        .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, song.artworkUri)
+    fun metadata(song: Song): MediaMetadataCompat = MediaMetadataCompat.Builder(song.toMediaMetadataCompat())
         .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, albumArt(song))
         .build()
 

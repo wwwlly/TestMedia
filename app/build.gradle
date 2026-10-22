@@ -3,6 +3,15 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// Signing credentials are stored only in the ignored local.properties file.
+def signingProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        signingProperties.load(reader)
+    }
+}
+
 android {
     namespace 'com.autoai.media.qqmusic'
     compileSdk 34
@@ -12,6 +21,36 @@ android {
         targetSdk 34
         versionCode 1
         versionName '1.0'
+    }
+
+    signingConfigs {
+        debugConfig {
+            def signingStorePath = signingProperties.getProperty("signing.debug.storeFile")
+            if (signingStorePath) {
+                storeFile rootProject.file(signingStorePath)
+            }
+            storePassword signingProperties.getProperty("signing.debug.storePassword")
+            keyAlias signingProperties.getProperty("signing.debug.keyAlias")
+            keyPassword signingProperties.getProperty("signing.debug.keyPassword")
+        }
+        releaseConfig {
+            def signingStorePath = signingProperties.getProperty("signing.release.storeFile")
+            if (signingStorePath) {
+                storeFile rootProject.file(signingStorePath)
+            }
+            storePassword signingProperties.getProperty("signing.release.storePassword")
+            keyAlias signingProperties.getProperty("signing.release.keyAlias")
+            keyPassword signingProperties.getProperty("signing.release.keyPassword")
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debugConfig
+        }
+        release {
+            signingConfig signingConfigs.releaseConfig
+        }
     }
 
     flavorDimensions += 'edition'

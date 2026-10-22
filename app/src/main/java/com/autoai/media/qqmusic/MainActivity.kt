@@ -8,6 +8,10 @@ import com.autoai.media.qqmusic.activity.MediaActivity
 import com.autoai.media.qqmusic.databinding.ActivityMainBinding
 import com.autoai.media.qqmusic.dialog.TestDialogFragment
 
+/**
+ * 原主入口，已由 [com.autoai.media.qqmusic.home.ui.MainActivity] 替代。
+ * 保留原实现供参考，Manifest 启动入口已指向新类。
+ */
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
